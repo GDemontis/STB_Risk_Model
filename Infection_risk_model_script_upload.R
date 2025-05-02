@@ -320,8 +320,5 @@ cleaned_summary_growth_risk <- lapply(All_summary_growth_risk, na.omit)
  
 plot(cleaned_summary_growth_risk[[1]], type = "l", xlab = "Time", ylab = "Pyc Germ Risk")
 
-#cleaned_summary_growth_risk <- cleaned_summary_growth_risk[-((length(cleaned_summary_growth_risk)-2):length(cleaned_summary_growth_risk))] #remove elements of list if no weather data means they are NaN
 # Save model output as risk across the growth season, separated by pixel 
 write.csv(cleaned_summary_growth_risk, file = paste0("Growth_17711", year_j, ".csv"))
-#write.csv(cleaned_summary_growth_risk, file = paste0("GROWTH_RISK_GS_", year_j, "_to_", year_j_plus_1, ".csv"))
-
