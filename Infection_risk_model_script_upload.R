@@ -4,16 +4,18 @@
 #weather vector inputs: temp_by_pixel, wet_by_pixel, precip_by_pixel
 #UK growing season runs from Oct-July
 #run for all pixels across one growing season
+#!!! Indicates points where selections are required
 
 
 ########################### Load weather data -----------------------------------------------
 # Load libraries
 library(ggplot2); library(R.utils); library(accelerometry); library(abind); library(terra); library(conflicted);library(future.apply)
 
+#!!!
 setwd("~")
 
 # Format raster data ------------------------------------------------------
-weather_raster <- rast(".grib") #change this only - combined weather raster for chosen time period
+weather_raster <- rast(".grib") #!!!change this only - combined weather raster for chosen time period
 #Layer 1 = temp
 #Layer 2 = wetness
 #Layer 3 = precip
@@ -54,7 +56,7 @@ wet_by_pixel <- split(wet_cells_matrix, col(wet_cells_matrix))
 precip_cells_matrix <- matrix(precip_gs, ncol = chunk_size, byrow = TRUE)
 precip_by_pixel <- split(precip_cells_matrix, col(precip_cells_matrix)) 
 
-#specify tmin, topt, tmax, α (a) and γ (g), for germination OR growth depending on which iteration of the germ function you are running 
+#!!!specify tmin, topt, tmax, α (a) and γ (g), for germination OR growth depending on which iteration of the germ function you are running 
 
 #tmin <-  9.92; topt <-  19.1 ; tmax <- 32.2; a <- 58.5; g <- 1.3 #germination
 tmin <-  -10.35; topt <-  17.17; tmax <- 19.77; a <- 189; g <- 2.2 #growth
@@ -234,8 +236,8 @@ germ <- function(canopy.wetness, tmp, hour, tmin, topt, tmax, a, g, array_germ_r
   N <- nrow(ti_temp)
   
   # Each hour will have a hazard and thermal death, dependent on whether it is wet or dry + temperature
-  # Loop to process each hour in the growth season
-  for(i in 2:N){ # from 2nd hour in growth season to Nth hour
+  # Loop to process each hour in the growing season
+  for(i in 2:N){ # from 2nd hour in growing season to Nth hour
     i2 <- i - 1 # id for previous hour
     if(ti_wet[i,1] == 1){ # if  wet in current hour
       av[i,] <- (av[i2,] - Fm[i2,]) # the number available to germinate in hour i = (available to germ in i2 - those that did germ in i2) (* 1 (because no death under wet conditions))
@@ -252,7 +254,7 @@ germ <- function(canopy.wetness, tmp, hour, tmin, topt, tmax, a, g, array_germ_r
   
 
 ############ Spore and process selection ---------------------------------------------
-  #for following, only run asco germ, pyc germ OR growth at once
+  #for following, only run asco germ, pyc germ OR growth at once (selection required)
 
   ###Ascospore burden
   n <- 1
@@ -263,7 +265,6 @@ germ <- function(canopy.wetness, tmp, hour, tmin, topt, tmax, a, g, array_germ_r
   #Fm <- calculate_ascospore_burden(n, t, h, Fm, gs_length)
   
 
-  
 # !!! Pycnidiospore germination -------------------------------------------
   # relies on precipitation (spores are released from pycnidia and land on available leaves only when it rains)
   #Fm <- calculate_pyc_burden(precip_by_pixel, gs_length, Fm, cts_october_nov_interest, tmp)
@@ -282,16 +283,16 @@ germ <- function(canopy.wetness, tmp, hour, tmin, topt, tmax, a, g, array_germ_r
   Fd
   #Fm_cum is the cumulative risk for each cohort (as a matrix), Fd is the cumulative total growth (combined cohorts, as a vector)
 }
-##END OF GERM
+##End of germ
 
 ############### Run Model  -------------------------------------------------------------------------
 #iterates over list elements in parallel
-# Use fewer cores to prevent crashes (max 4 workers)
+# Use fewer cores to prevent crashes
 plan(multisession, workers = min(4, availableCores() - 1)) 
 
 # Run only on the first 100 elements to check for memory issues before running all
 #test_indices <- seq_along(wet_by_pixel)[1]
-#change wet_by_puxel (below) to test_indices if testing
+#change wet_by_pixel (below) to test_indices if testing
 
 #Run Model
 All_summary_growth_risk <- future_lapply(seq_along(wet_by_pixel), function(i) {
@@ -315,10 +316,9 @@ All_summary_growth_risk <- future_lapply(seq_along(wet_by_pixel), function(i) {
 })
 
 
-#remove NA value at start of each element (added earlier in code to make lengths correct)
+#remove NA value at start of each element (added earlier to correct lengths)
 cleaned_summary_growth_risk <- lapply(All_summary_growth_risk, na.omit)
- 
-plot(cleaned_summary_growth_risk[[1]], type = "l", xlab = "Time", ylab = "Pyc Germ Risk")
 
 # Save model output as risk across the growth season, separated by pixel 
-write.csv(cleaned_summary_growth_risk, file = paste0("Growth_17711", year_j, ".csv"))
+write.csv(cleaned_summary_growth_risk, file = paste0("GROWTH_RISK_GS_", year_j, "_to_", year_j_plus_1, ".csv"))
+
